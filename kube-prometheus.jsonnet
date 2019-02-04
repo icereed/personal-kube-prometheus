@@ -1,3 +1,8 @@
+local k = import 'ksonnet/ksonnet.beta.3/k.libsonnet';
+local deploymentType = k.apps.v1beta1.deployment;
+local container = k.apps.v1beta1.deployment.mixin.spec.template.spec.containersType;
+local envType = container.envType;
+
 local kp =
   (import 'kube-prometheus/kube-prometheus.libsonnet') + 
   (import 'kube-prometheus/kube-prometheus-kops.libsonnet') +
@@ -30,6 +35,17 @@ local kp =
           editable: false,
         }],
       },
+    },
+  } + 
+  {
+    grafana+:: {
+      deployment+: deploymentType.mapContainersWithName(
+        "grafana",
+        function(c) c + container.withEnv([
+          envType.fromSecretRef("GF_SECURITY_ADMIN_USER", "grafana-credentials", "user"),
+          envType.fromSecretRef("GF_SECURITY_ADMIN_PASSWORD", "grafana-credentials", "password"),
+        ]),
+      ),
     },
   };
 
